@@ -1,0 +1,135 @@
+library(tidyverse)
+library(mosaic)
+library(glmnet)
+library(fpp2)
+library(foreach)
+
+
+data(SaratogaHouses)
+
+#### 11 main effects, medium model
+lm_medium = lm(price ~ lotSize + age + livingArea + pctCollege + bedrooms + 
+                 fireplaces + bathrooms + rooms + heating + fuel + centralAir, data=SaratogaHouses)
+
+# our model 1
+
+sample <- SaratogaHouses %>%
+  mutate(housevalue =(price-landValue)) 
+sample <- sample [!(sample$housevalue < 0),]
+
+sample <- sample %>%
+  mutate(log_hv = log(housevalue))
+
+lm_1 = lm(log_hv ~ livingArea + bathrooms + waterfront + centralAir, data = sample)
+lm_2 = lm(log_hv ~ age + livingArea + bathrooms + waterfront + centralAir, data = sample)
+lm_3 = lm(log_hv ~ age + livingArea + bathrooms + waterfront + centralAir + fireplaces + fireplaces*age , data= sample)
+lm_4 = lm(log_hv ~ age + livingArea + bathrooms + waterfront + centralAir+bedrooms + bedrooms * bathrooms,data= sample)
+
+rmse = function(y, yhat) {
+  sqrt( mean( (y - yhat)^2 ) )
+}
+
+set.seed(1)
+# RMSE medium model
+out_medium = do(100)*{
+  n = nrow(sample)
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  sample_train = sample[train_cases,]
+  sample_test = sample[test_cases,]
+  
+  lm_medium = lm(price ~ lotSize + age + livingArea + pctCollege + bedrooms + 
+                   fireplaces + bathrooms + rooms + heating + fuel + centralAir, data=sample_train)
+  # Predictions out of sample
+  yhat_testmedium = predict(lm_medium, sample_test)
+  # Calculating classification errors
+  sum(rmse(sample_test$price, yhat_testmedium))
+}
+mean(out_medium$result)
+
+# RMSE our model 1 
+out_1 = do(100)*{
+  n = nrow(sample)
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  sample_train = sample[train_cases,]
+  sample_test = sample[test_cases,]
+  
+  lm_1 = lm(log_hv ~ livingArea + bathrooms + waterfront + centralAir, data = sample_train)
+  
+  # Predictions out of sample
+  yhat_test1 = predict(lm_1, sample_test)
+  # Calculating classification errors
+  sum(rmse(sample_test$log_hv, yhat_test1))
+}
+mean(out_1$result)
+
+# RMSE our model 2 
+out_2 = do(100)*{
+  n = nrow(sample)
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  sample_train = sample[train_cases,]
+  sample_test = sample[test_cases,]
+  
+  lm_2 = lm(log_hv ~ livingArea + bathrooms + waterfront + centralAir, data = sample_train)
+  
+  # Predictions out of sample
+  
+  yhat_test2 = predict(lm_2, sample_test)
+  # Calculating classification errors
+  sum(rmse(sample_test$log_hv, yhat_test2))
+}
+mean(out_2$result)
+
+# RMSE our model 3 
+out_3 = do(100)*{
+  n = nrow(sample)
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  sample_train = sample[train_cases,]
+  sample_test = sample[test_cases,]
+  
+  lm_3 = lm(log_hv ~ age + livingArea + bathrooms + waterfront + centralAir
+            + fireplaces + fireplaces*age , data = sample_train)
+  # Predictions out of sample
+  
+  yhat_test3 = predict(lm_3, sample_test)
+  # Calculating classification errors
+  sum(rmse(sample_test$log_hv, yhat_test3))
+}
+mean(out_3$result)
+
+# RMSE our model 4 
+out_4 = do(100)*{
+  n = nrow(sample)
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  sample_train = sample[train_cases,]
+  sample_test = sample[test_cases,]
+  
+  lm_3 = lm(log_hv ~ age + livingArea + bathrooms + waterfront + centralAir
+            + fireplaces + fireplaces*age , data = sample_train)
+  # Predictions out of sample
+  
+  yhat_test3 = predict(lm_3, sample_test)
+  # Calculating classification errors
+  sum(rmse(sample_test$log_hv, yhat_test3))
+}
+mean(out_medium$result)
+mean(out_1$result)
+mean(out_2$result)
+mean(out_3$result)
+mean(out_4$result)
+
+ 
